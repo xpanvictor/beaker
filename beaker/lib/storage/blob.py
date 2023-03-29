@@ -1,39 +1,37 @@
 from abc import ABC, abstractmethod
-from typing import Optional
-from pyteal import BytesZero, Int, Expr, Extract, Bytes, TealTypeError
+from collections.abc import Iterable
+
+from pyteal import Bytes, BytesZero, Expr, Extract, Int
 
 blob_page_size = 128 - 1  # need 1 byte for key
 BLOB_PAGE_SIZE = Int(blob_page_size)
 EMPTY_PAGE = BytesZero(BLOB_PAGE_SIZE)
+_MAX_KEY = 255
 
 
 class Blob(ABC):
     """
-    Blob is a class holding static methods to work with the global storage of an application as a binary large object
+    Blob is a class holding static methods to work with the global or local storage of an application as a Binary Large OBject
 
     """
 
-    def __init__(self, key_limit: int, /, *, keys: Optional[int | list[int]] = None):
-
+    def __init__(self, keys: int | Iterable[int]):
         _keys: list[int] = []
 
-        if keys is None:
-            _keys = [x for x in range(key_limit)]
-        elif type(keys) is int:
-            _keys = [x for x in range(keys)]
-        elif type(keys) is list:
-            _keys = keys
+        if isinstance(keys, int):
+            _keys = list(range(keys))
         else:
-            raise TealTypeError(type(keys), int | list[int])
+            _keys = sorted(keys)
 
-        assert max(_keys) <= 255, "larger than 1 byte key supplied"
-        assert sorted(_keys) == _keys, "keys provided are not sorted"
+        if not _keys:
+            raise ValueError("keys sequence must not be empty")
+        elif _keys[0] < 0:
+            raise ValueError("key values must be non-negative")
+        elif _keys[-1] > _MAX_KEY:
+            raise ValueError("larger than 1 byte key supplied")
 
         self.byte_keys = [key.to_bytes(1, "big") for key in _keys]
         self.byte_key_str = Bytes("base16", b"".join(self.byte_keys).hex())
-
-        self.int_keys = [Int(key) for key in _keys]
-        self.start_key = self.int_keys[0]
 
         self._max_keys = len(_keys)
         self._max_bytes = self._max_keys * blob_page_size
@@ -42,13 +40,15 @@ class Blob(ABC):
         self.max_keys = Int(self._max_keys)
         self.max_bytes = Int(self._max_bytes)
 
-    def _key(self, i) -> Expr:
+    def _key(self, i: Expr) -> Expr:
         return Extract(self.byte_key_str, i, Int(1))
 
-    def _key_idx(self, idx: Int) -> Expr:
+    @staticmethod
+    def _key_idx(idx: Expr) -> Expr:
         return idx / BLOB_PAGE_SIZE
 
-    def _offset_for_idx(self, idx: Int) -> Expr:
+    @staticmethod
+    def _offset_for_idx(idx: Expr) -> Expr:
         return idx % BLOB_PAGE_SIZE
 
     @abstractmethod
@@ -56,17 +56,17 @@ class Blob(ABC):
         ...
 
     @abstractmethod
-    def get_byte(self, idx) -> Expr:
+    def get_byte(self, idx: Int) -> Expr:
         ...
 
     @abstractmethod
-    def set_byte(self, idx, byte) -> Expr:
+    def set_byte(self, idx: Int, byte: Expr) -> Expr:
         ...
 
     @abstractmethod
-    def read(self, bstart, bstop) -> Expr:
+    def read(self, bstart: Expr, bstop: Expr) -> Expr:
         ...
 
     @abstractmethod
-    def write(self, bstart, buff) -> Expr:
+    def write(self, bstart: Expr, buff: Expr) -> Expr:
         ...

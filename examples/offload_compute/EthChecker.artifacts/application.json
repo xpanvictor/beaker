@@ -1,0 +1,58 @@
+{
+    "hints": {
+        "check_eth_sig(byte[32],byte[65])string": {
+            "call_config": {
+                "no_op": "CALL"
+            }
+        }
+    },
+    "source": {
+        "approval": "I3ByYWdtYSB2ZXJzaW9uIDgKaW50Y2Jsb2NrIDAgMQp0eG4gTnVtQXBwQXJncwppbnRjXzAgLy8gMAo9PQpibnogbWFpbl9sNAp0eG5hIEFwcGxpY2F0aW9uQXJncyAwCnB1c2hieXRlcyAweDM5M2QwM2YxIC8vICJjaGVja19ldGhfc2lnKGJ5dGVbMzJdLGJ5dGVbNjVdKXN0cmluZyIKPT0KYm56IG1haW5fbDMKZXJyCm1haW5fbDM6CnR4biBPbkNvbXBsZXRpb24KaW50Y18wIC8vIE5vT3AKPT0KdHhuIEFwcGxpY2F0aW9uSUQKaW50Y18wIC8vIDAKIT0KJiYKYXNzZXJ0CnR4bmEgQXBwbGljYXRpb25BcmdzIDEKc3RvcmUgMAp0eG5hIEFwcGxpY2F0aW9uQXJncyAyCnN0b3JlIDEKbG9hZCAwCmxvYWQgMQpjYWxsc3ViIGNoZWNrZXRoc2lnXzAKc3RvcmUgMgpwdXNoYnl0ZXMgMHgxNTFmN2M3NSAvLyAweDE1MWY3Yzc1CmxvYWQgMgpjb25jYXQKbG9nCmludGNfMSAvLyAxCnJldHVybgptYWluX2w0Ogp0eG4gT25Db21wbGV0aW9uCmludGNfMCAvLyBOb09wCj09CmJueiBtYWluX2w2CmVycgptYWluX2w2Ogp0eG4gQXBwbGljYXRpb25JRAppbnRjXzAgLy8gMAo9PQphc3NlcnQKaW50Y18xIC8vIDEKcmV0dXJuCgovLyBjaGVja19ldGhfc2lnCmNoZWNrZXRoc2lnXzA6CnByb3RvIDIgMQpwdXNoYnl0ZXMgMHggLy8gIiIKdHhuIFNlbmRlcgpwdXNoYnl0ZXMgMHhjZjYzM2I1NDkyYTEzNGM3MWQzY2ZiYWUwMmIyYzUyNDMzOTc5MzEyY2EwNGIxN2JiZWI4YzZlNmRhYzVjOGM5IC8vIFo1UlRXVkVTVUUyTU9ISjQ3T1hBRk1XRkVRWlpQRVlTWklDTEM2NTZYRERPTldXRlpERVZVNFdYREUKPT0KYXNzZXJ0CnB1c2hieXRlcyAweDAwMGU2YzczNjk2NzIwNzY2MTZjNjk2NDYxNzQ2NTY0IC8vIDB4MDAwZTZjNzM2OTY3MjA3NjYxNmM2OTY0NjE3NDY1NjQKZnJhbWVfYnVyeSAwCnJldHN1Yg==",
+        "clear": "I3ByYWdtYSB2ZXJzaW9uIDgKcHVzaGludCAwIC8vIDAKcmV0dXJu"
+    },
+    "state": {
+        "global": {
+            "num_byte_slices": 0,
+            "num_uints": 0
+        },
+        "local": {
+            "num_byte_slices": 0,
+            "num_uints": 0
+        }
+    },
+    "schema": {
+        "global": {
+            "declared": {},
+            "reserved": {}
+        },
+        "local": {
+            "declared": {},
+            "reserved": {}
+        }
+    },
+    "contract": {
+        "name": "EthChecker",
+        "methods": [
+            {
+                "name": "check_eth_sig",
+                "args": [
+                    {
+                        "type": "byte[32]",
+                        "name": "hash"
+                    },
+                    {
+                        "type": "byte[65]",
+                        "name": "signature"
+                    }
+                ],
+                "returns": {
+                    "type": "string"
+                }
+            }
+        ],
+        "networks": {}
+    },
+    "bare_call_config": {
+        "no_op": "CREATE"
+    }
+}

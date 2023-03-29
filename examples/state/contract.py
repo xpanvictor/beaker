@@ -1,130 +1,128 @@
-from typing import Final
-from beaker import (
-    Application,
-    ApplicationStateValue,
-    ReservedApplicationStateValue,
-    AccountStateValue,
-    ReservedAccountStateValue,
-    create,
-    opt_in,
-    external,
-)
-from pyteal import abi, TealType, Bytes, Int, Txn
+import pyteal as pt
 
-from beaker.state import AccountStateBlob, ApplicationStateBlob
+import beaker
 
 
-class StateExample(Application):
-
-    declared_app_value: Final[ApplicationStateValue] = ApplicationStateValue(
-        stack_type=TealType.bytes,
-        default=Bytes(
+class ExampleState:
+    declared_global_value = beaker.GlobalStateValue(
+        stack_type=pt.TealType.bytes,
+        default=pt.Bytes(
             "A declared state value that is protected with the `static` flag"
         ),
-        descr="A static declared variable, nothing at the protocol level protects it, only the methods defined on ApplicationState do",
+        descr="A static declared variable, nothing at the protocol level protects it, "
+        "only the methods defined on ApplicationState do",
         static=True,
     )
 
-    dynamic_app_value: Final[
-        ReservedApplicationStateValue
-    ] = ReservedApplicationStateValue(
-        stack_type=TealType.uint64,
+    reserved_global_value = beaker.ReservedGlobalStateValue(
+        stack_type=pt.TealType.uint64,
         max_keys=32,
-        descr="A dynamic app state variable, with 32 possible keys",
+        descr="A reserved app state variable, with 32 possible keys",
     )
 
-    application_blob: Final[ApplicationStateBlob] = ApplicationStateBlob(
+    global_blob = beaker.GlobalStateBlob(
         keys=16,
     )
 
-    declared_account_value: Final[AccountStateValue] = AccountStateValue(
-        stack_type=TealType.uint64,
-        default=Int(1),
+    declared_local_value = beaker.LocalStateValue(
+        stack_type=pt.TealType.uint64,
+        default=pt.Int(1),
         descr="An int stored for each account that opts in",
     )
 
-    dynamic_account_value: Final[ReservedAccountStateValue] = ReservedAccountStateValue(
-        stack_type=TealType.bytes,
+    reserved_local_value = beaker.ReservedLocalStateValue(
+        stack_type=pt.TealType.bytes,
         max_keys=8,
-        descr="A dynamic state value, allowing 8 keys to be reserved, in this case byte type",
+        descr="A reserved state value, allowing 8 keys to be reserved, "
+        "in this case byte type",
     )
 
-    account_blob: Final[AccountStateBlob] = AccountStateBlob(keys=3)
+    local_blob = beaker.LocalStateBlob(keys=3)
 
-    @create
-    def create(self):
-        return self.initialize_application_state()
 
-    @opt_in
-    def opt_in(self):
-        return self.initialize_account_state()
+app = (
+    beaker.Application("StateExample", state=ExampleState())
+    .apply(beaker.unconditional_create_approval, initialize_global_state=True)
+    .apply(beaker.unconditional_opt_in_approval, initialize_local_state=True)
+)
 
-    @external
-    def write_acct_blob(self, v: abi.String):
-        return self.account_blob.write(Int(0), v.get())
 
-    @external
-    def read_acct_blob(self, *, output: abi.DynamicBytes):
-        return output.set(
-            self.account_blob.read(Int(0), self.account_blob.blob.max_bytes - Int(1))
+@app.external
+def write_local_blob(v: pt.abi.String) -> pt.Expr:
+    return app.state.local_blob.write(pt.Int(0), v.get())
+
+
+@app.external
+def read_local_blob(*, output: pt.abi.DynamicBytes) -> pt.Expr:
+    return output.set(
+        app.state.local_blob.read(
+            pt.Int(0), app.state.local_blob.blob.max_bytes - pt.Int(1)
         )
+    )
 
-    @external
-    def write_app_blob(self, v: abi.String):
-        return self.application_blob.write(Int(0), v.get())
 
-    @external
-    def read_app_blob(self, *, output: abi.DynamicBytes):
-        return output.set(
-            self.application_blob.read(
-                Int(0), self.application_blob.blob.max_bytes - Int(1)
-            )
+@app.external
+def write_global_blob(v: pt.abi.String) -> pt.Expr:
+    return app.state.global_blob.write(pt.Int(0), v.get())
+
+
+@app.external
+def read_global_blob(*, output: pt.abi.DynamicBytes) -> pt.Expr:
+    return output.set(
+        app.state.global_blob.read(
+            pt.Int(0), app.state.global_blob.blob.max_bytes - pt.Int(1)
         )
-
-    @external
-    def set_app_state_val(self, v: abi.String):
-        # This will fail, since it was declared as `static` and initialized to a default value during create
-        return self.declared_app_value.set(v.get())
-
-    @external(read_only=True)
-    def get_app_state_val(self, *, output: abi.String):
-        return output.set(self.declared_app_value)
-
-    @external
-    def set_dynamic_app_state_val(self, k: abi.Uint8, v: abi.Uint64):
-        # Accessing the key with square brackets, accepts both Expr and an ABI type
-        # If the value is an Expr it must evaluate to `TealType.bytes`
-        # If the value is an ABI type, the `encode` method is used to convert it to bytes
-        return self.dynamic_app_value[k].set(v.get())
-
-    @external(read_only=True)
-    def get_dynamic_app_state_val(self, k: abi.Uint8, *, output: abi.Uint64):
-        return output.set(self.dynamic_app_value[k])
-
-    @external
-    def set_account_state_val(self, v: abi.Uint64):
-        # Accessing with `[Txn.sender()]` is redundant but
-        # more clear what is happening
-        return self.declared_account_value[Txn.sender()].set(v.get())
-
-    @external
-    def incr_account_state_val(self, v: abi.Uint64):
-        # Omitting [Txn.sender()] just for demo purposes
-        return self.declared_account_value.increment(v.get())
-
-    @external(read_only=True)
-    def get_account_state_val(self, *, output: abi.Uint64):
-        return output.set(self.declared_account_value[Txn.sender()])
-
-    @external
-    def set_dynamic_account_state_val(self, k: abi.Uint8, v: abi.String):
-        return self.dynamic_account_value[k][Txn.sender()].set(v.get())
-
-    @external(read_only=True)
-    def get_dynamic_account_state_val(self, k: abi.Uint8, *, output: abi.String):
-        return output.set(self.dynamic_account_value[k][Txn.sender()])
+    )
 
 
-if __name__ == "__main__":
-    se = StateExample()
-    print(se.approval_program)
+@app.external
+def set_global_state_val(v: pt.abi.String) -> pt.Expr:
+    # This will fail, since it was declared as `static` and initialized to
+    # a default value during create
+    return app.state.declared_global_value.set(v.get())
+
+
+@app.external(read_only=True)
+def get_global_state_val(*, output: pt.abi.String) -> pt.Expr:
+    return output.set(app.state.declared_global_value)
+
+
+@app.external
+def set_reserved_global_state_val(k: pt.abi.Uint8, v: pt.abi.Uint64) -> pt.Expr:
+    # Accessing the key with square brackets, accepts both Expr and an ABI type
+    # If the value is an Expr it must evaluate to `TealType.bytes`
+    # If the value is an ABI type, the `encode` method is used to convert it to bytes
+    return app.state.reserved_global_value[k].set(v.get())
+
+
+@app.external(read_only=True)
+def get_reserved_global_state_val(k: pt.abi.Uint8, *, output: pt.abi.Uint64) -> pt.Expr:
+    return output.set(app.state.reserved_global_value[k])
+
+
+@app.external
+def set_local_state_val(v: pt.abi.Uint64) -> pt.Expr:
+    # Accessing with `[Txn.sender()]` is redundant but
+    # more clear what is happening
+    return app.state.declared_local_value[pt.Txn.sender()].set(v.get())
+
+
+@app.external
+def incr_local_state_val(v: pt.abi.Uint64) -> pt.Expr:
+    # Omitting [Txn.sender()] just for demo purposes
+    return app.state.declared_local_value.increment(v.get())
+
+
+@app.external(read_only=True)
+def get_local_state_val(*, output: pt.abi.Uint64) -> pt.Expr:
+    return output.set(app.state.declared_local_value[pt.Txn.sender()])
+
+
+@app.external
+def set_reserved_local_state_val(k: pt.abi.Uint8, v: pt.abi.String) -> pt.Expr:
+    return app.state.reserved_local_value[k][pt.Txn.sender()].set(v.get())
+
+
+@app.external(read_only=True)
+def get_reserved_local_state_val(k: pt.abi.Uint8, *, output: pt.abi.String) -> pt.Expr:
+    return output.set(app.state.reserved_local_value[k][pt.Txn.sender()])

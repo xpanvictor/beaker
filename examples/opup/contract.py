@@ -1,39 +1,52 @@
 from typing import Literal
-from pyteal import abi, ScratchVar, Seq, Assert, Int, For, Sha256
-from beaker import sandbox
-from beaker.decorators import external
 
-if __name__ == "__main__":
-    from op_up import OpUp
-else:
-    from .op_up import OpUp
+import pyteal as pt
 
+import beaker
 
-class ExpensiveApp(OpUp):
-    """Do expensive work to demonstrate inheriting from OpUp"""
+from examples.opup.op_up import OpUpState, op_up_blueprint
 
-    @external
-    def hash_it(
-        self,
-        input: abi.String,
-        iters: abi.Uint64,
-        opup_app: abi.Application = OpUp.opup_app_id,
-        *,
-        output: abi.StaticBytes[Literal[32]],
-    ):
-        return Seq(
-            Assert(opup_app.application_id() == self.opup_app_id),
-            self.call_opup(Int(255)),
-            (current := ScratchVar()).store(input.get()),
-            For(
-                (i := ScratchVar()).store(Int(0)),
-                i.load() < iters.get(),
-                i.store(i.load() + Int(1)),
-            ).Do(current.store(Sha256(current.load()))),
-            output.decode(current.load()),
-        )
+app = beaker.Application(
+    name="ExpensiveApp",
+    descr="Do expensive work to demonstrate implementing op_up blueprint",
+    state=OpUpState(),
+)
+
+# Create a callable method after passing the
+# instance of the app to have methods added
+call_opup = op_up_blueprint(app)
 
 
-if __name__ == "__main__":
-    a, c = ExpensiveApp().compile(sandbox.get_algod_client())
-    print(a, c)
+@app.external
+def hash_it(
+    input: pt.abi.String,
+    iters: pt.abi.Uint64,
+    opup_app: pt.abi.Application = app.state.opup_app_id,  # type: ignore[assignment]
+    *,
+    output: pt.abi.StaticBytes[Literal[32]],
+) -> pt.Expr:
+    return pt.Seq(
+        pt.Assert(opup_app.application_id() == app.state.opup_app_id),
+        Repeat(255, call_opup()),
+        (current := pt.ScratchVar()).store(input.get()),
+        pt.For(
+            (i := pt.ScratchVar()).store(pt.Int(0)),
+            i.load() < iters.get(),
+            i.store(i.load() + pt.Int(1)),
+        ).Do(current.store(pt.Sha256(current.load()))),
+        output.decode(current.load()),
+    )
+
+
+def Repeat(n: int, expr: pt.Expr) -> pt.Expr:  # noqa: N802
+    """internal method to issue transactions against the target app"""
+    if n < 0:
+        raise ValueError("n < 0")
+    elif n == 1:
+        return expr
+    else:
+        return pt.For(
+            (i := pt.ScratchVar()).store(pt.Int(0)),
+            i.load() < pt.Int(n),
+            i.store(i.load() + pt.Int(1)),
+        ).Do(expr)

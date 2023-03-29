@@ -1,35 +1,49 @@
 Precompile
 ==========
 
-A Precompile as an attribute on a Beaker Application allows the contract to 
-have some program be included in the source of the applications programs.
+A ``precompile`` is useful if you need the fully assembled binary representation of a TEAL program in the logic of another TEAL program.
 
-:ref:`One example <offload_compute_example>` of where it might be used is in offloading some compute into a LogicSignature
-which has a max budget of 20k ops compared with 700 ops in a single Application call. 
+:ref:`One example <offload_compute_example>` of where it might be used, is in offloading some compute into a LogicSignature, 
+which has a max opcode budget of 20k ops compared with 700 ops in a single Application call. 
+
+By using the ``precompile`` in this way we can check offload the more expensive computation to the ``LogicSignature`` and preserve the app calls opcode budget for other work. 
+
+.. note::
+    When we do this, we need to be careful that the ``LogicSignature`` is the one we expect by checking its address, which is the hash of the program logic.
 
 :ref:`Another example <sub_app_example>` might be if you need to deploy some child Application and want to have the logic 
-locally as compiled bytes to create the app directly in program logic.
+locally in the program as compiled bytes so the "parent app" can create the "child app" directly in program logic.
 
-When you include an ``AppPrecompile`` or ``LSigPrecompile`` in your Application as a class var, Beaker knows to prevent building the TEAL
-until the ``Precompiles`` it depends on are fully assembled. 
+By using the ``precompile`` in this way, we can deploy the Sub Application directly from our Parent app.
 
-This can be done in two ways: 
-    1) By passing the top level ``Application`` to an ``ApplicationClient`` and calling the ``build`` method, the top level ``Application`` will have its dependencies fully assembled recursively.
-    2) By calling ``compile`` method on the ``AppPrecompile`` or ``LSigPrecompile`` and passing an ``AlgodClient`` to assemble the dependencies.
+.. note::
+    When we do this, the compiled program will take up more space in our "parent app" contract, so some consideration of the trade offs between program size and convenience may be necessary.
 
+Usage
+-----
+
+In order to use a ``Precompile`` in a program, first wrap the ``LogicSignature`` or ``Application`` with the ``precompile`` method. This will ensure that the program is fully compiled once and only once and the binary versions of the assembled programs are available when it's time to build the containing ``Application`` or ``LogicSignature``. 
+
+.. note::
+    The ``precompile`` function may _only_ be called inside a function.
+
+.. literalinclude:: ../../examples/nested_precompile/smart_contracts/parent.py
+    :lines: 10-17 
+    :emphasize-lines: 4
+
+
+Reference
+---------
 
 .. module:: beaker.precompile 
 
-.. autoclass:: AppPrecompile
+.. autoclass:: PrecompiledApplication
     :members:
 
-.. autoclass:: LSigPrecompile
+.. autoclass:: PrecompiledLogicSignature
     :members:
 
-.. autoclass:: Precompile
-    :members:
-
-.. autoclass:: PrecompileTemplateValue
+.. autoclass:: PrecompiledLogicSignatureTemplate
     :members:
 
 Examples
@@ -39,12 +53,12 @@ Examples
 
 Using Precompile for offloading compute 
 
-.. literalinclude:: ../../examples/offload_compute/main.py
-    :lines: 18-39
-
+.. literalinclude:: ../../examples/offload_compute/eth_checker.py
+    :emphasize-lines: 98
 
 .. _sub_app_example:
 
 Using Precompile for a child Application 
 
-.. literalinclude:: ../../examples/nested_precompile/nested_application.py
+.. literalinclude:: ../../examples/nested_precompile/smart_contracts/parent.py
+    :emphasize-lines: 13,23

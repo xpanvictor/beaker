@@ -1,24 +1,18 @@
 Beaker
 ------
-<img align="left" src="beaker.png" margin="10px" >
+<img align="left" src="https://raw.githubusercontent.com/algorand-devrel/beaker/master/beaker.png" margin="10px" >
 
 Beaker is a smart contract development framework for [PyTeal](https://github.com/algorand/pyteal).
 
 
-With Beaker, we build a class that represents our entire application including state and routing.
-
 
 &nbsp;
 
 &nbsp;
 
+&nbsp;
 
 
-## WARNING
-
- :warning: *Mostly Untested - Expect Breaking Changes*  :warning:
-
- **Please file issues or prs and get any contracts audited**
 
 ## Hello, Beaker
 
@@ -27,21 +21,22 @@ With Beaker, we build a class that represents our entire application including s
 from pyteal import *
 from beaker import *
 
-# Create a class, subclassing Application from beaker
-class HelloBeaker(Application):
-    # Add an external method with ABI method signature `hello(string)string`
-    @external
-    def hello(self, name: abi.String, *, output: abi.String):
-        # Set output to the result of `Hello, `+name
-        return output.set(Concat(Bytes("Hello, "), name.get()))
+
+hello_app = Application("HelloBeaker")
+
+
+@hello_app.external
+def hello(name: abi.String, *, output: abi.String) -> Expr:
+    # Set output to the result of `Hello, `+name
+    return output.set(Concat(Bytes("Hello, "), name.get()))
 
 
 # Create an Application client
 app_client = client.ApplicationClient(
     # Get sandbox algod client
     client=sandbox.get_algod_client(),
-    # Instantiate app with the program version (default is MAX_TEAL_VERSION)
-    app=HelloBeaker(version=6),
+    # Pass instance of app to client
+    app=hello_app,
     # Get acct from sandbox and pass the signer
     signer=sandbox.get_accounts().pop().signer,
 )
@@ -56,14 +51,14 @@ print(
 )
 
 # Call the `hello` method
-result = app_client.call(HelloBeaker.hello, name="Beaker")
+result = app_client.call(hello, name="Beaker")
 print(result.return_value)  # "Hello, Beaker"
 
 ```
 
 ## Install
 
-    Beaker currently requires Python >= 3.10
+    Beaker requires Python >= 3.10
 
 You can install from pip:
 
@@ -73,18 +68,21 @@ Or from github directly (no promises on stability):
 
 `pip install git+https://github.com/algorand-devrel/beaker`
 
-
 # Dev Environment 
 
-Requires a local [sandbox](https://github.com/algorand/sandbox) with latest stable tag minimum.
+Requires a local network running to compile and test contracts.
+
+Install [AlgoKit](https://github.com/algorandfoundation/algokit-cli#install)
+
+and start it 
 
 ```sh
-$ git clone git@github.com:algorand/sandbox.git
-$ cd sandbox
-$ sandbox up source
+$ algokit localnet start 
+$ algokit localnet status
 ```
 
 ## Front End 
+
 
 See [Beaker TS](https://github.com/algorand-devrel/beaker-ts) to generate a front end client for a Beaker App.
 
@@ -98,4 +96,6 @@ You can run tests from the root of the project using `pytest`
 
 [Docs](https://beaker.algo.xyz)
 
-*Please feel free to file issues/prs*
+**Please report bugs and get any contracts audited**
+
+We recommend that any production smart contracts be audited by a professional before deployment. Beaker has been thoroughly tested, but we cannot guarantee that it is entirely free of bugs.

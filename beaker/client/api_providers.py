@@ -1,4 +1,5 @@
 from enum import Enum
+
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
 
@@ -81,11 +82,13 @@ class PureStake(APIProvider):
     # existing methods but re-use them to generate the client
     def algod(self, token: str = "") -> AlgodClient:
         algod_client = super().algod()
-        algod_client.headers = {self.token_header: token}
+        algod_client.headers = {self.token_header: token}  # type: ignore[misc]
+        return algod_client
 
     def indexer(self, token: str = "") -> IndexerClient:
-        indexer_client = super().algod()
+        indexer_client = super().indexer()
         indexer_client.headers = {self.token_header: token}
+        return indexer_client
 
 
 class Sandbox(APIProvider):

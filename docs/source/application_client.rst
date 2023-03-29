@@ -8,37 +8,46 @@ Application Client
 
 The ``ApplicationClient`` provides a convenient way to interact with our ``Application``.
 
+.. literalinclude:: ../../examples/client/demo.py
+    :lines: 16-19
+
+By passing an ``AlgodClient``, an instance of our ``Application`` and a ``TransactionSigner``, we can easily make calls to our application. 
+
 .. note::
-    The ``ApplicationClient`` takes an ``AlgodClient`` as its first argument, the most common API providers are available in ``beaker.client.api_providers``
+    The ``AlgodClient`` passed to the ``ApplicationClient`` is always one pointing to the local sandbox in examples. This is not a requirement, it can be connected to any ``Algod`` node and the most common API providers are available in ``beaker.client.api_providers``
+
+
+If the application does not yet exist, the ``app_id`` argument can be omitted but the first interaction with the ``Application`` should be to ``create`` it. 
+
+If ``create`` is called, the ``app_id`` will be set for the lifetime of the ``ApplicationClient`` instance.
+
+If the application **does** exist, the app_id can be provided directly 
+
+.. literalinclude:: ../../examples/client/demo.py
+    :lines: 70-76
+    :emphasize-lines: 6
+
+The primary way to interact with our application is by using the ``call`` method, passing the method we want to call and the arguments it expects as keyword arguments.  
+
+.. literalinclude:: ../../examples/client/demo.py
+    :lines: 31-31 
+
+If multiple app calls are required in the same atomic group, the ``ApplicationClient`` also allows composing a group of calls using the ``add_method_call`` method which uses an ``AtomicTransactionComposer`` to build the group.
+
+If there are multiple signers, or you want to re-use some suggested parameters, the ``prepare`` method may be called with the different arguments and a copy of the client is returned with the updated parameters.
+
+.. literalinclude:: ../../examples/client/demo.py
+    :lines: 35-35
+
 
 :ref:`Full Example <app_client_example>`
 
-The main point of interaction with our application is done using ``call``.  
-
-If there is an application already deployed, the ``app_id`` can be passed during initialization. If no ``app_id`` is passed, it's set to 0 so any app calls will be interpreted by the network as an intention to create the application. Once the ``create`` method is called the app id is set internally to the newly deployed application id and follow up calls will use that id.
-
-If there are multiple signers or you want to re-use some suggested parameters, the ``prepare`` method may be called with the different arguments and a copy of the client is returned with the updated parameters.
-
 .. autoclass:: ApplicationClient
-
-    .. automethod:: call 
-    .. automethod:: add_method_call
-    .. automethod:: prepare
-    .. automethod:: create
-    .. automethod:: delete
-    .. automethod:: update 
-    .. automethod:: opt_in 
-    .. automethod:: close_out 
-    .. automethod:: clear_state 
-    .. automethod:: fund
-    .. automethod:: get_application_state 
-    .. automethod:: get_application_account_info
-    .. automethod:: get_account_state 
-
+    :members:
 
 .. _app_client_example:
 
 Full Example
 -------------
 
-.. literalinclude:: ../../examples/client/main.py
+.. literalinclude:: ../../examples/client/demo.py

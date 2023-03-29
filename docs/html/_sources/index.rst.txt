@@ -24,7 +24,7 @@ You may install from Pip
 
 .. code-block:: console
 
-    (.venv)$ pip install beaker-pyteal 
+    (.venv)$ pip install beaker-pyteal
 
 Or from github directly
 
@@ -62,7 +62,8 @@ See full examples `here <https://github.com/algorand-devrel/beaker/tree/master/e
     state
     precompile
     decorators
-    testing
+    boxes
+    migration
 
 
 Indices and tables
